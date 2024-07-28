@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Element Visualizer</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div id="container"></div>
+    <div id="info">
+        <input type="number" id="atomicNumberInput" placeholder="Enter Atomic Number" min="1" max="118">
+        <button id="fetchElement">Fetch Element</button>
+        <div id="elementDetails"></div>
+        <div id="periodicTableContainer">
+            <img src="{{ url_for('static', filename='images/periodic_table.png') }}" id="periodicTable">
+        </div>
+    </div>
+    <div id="helpMenu">
+        <h3>Help</h3>
+        <p>Enter the atomic number of an element to visualize its quantum states and atomic model.</p>
+        <p>Click on the periodic table to select an element.</p>
+        <p>Use the "Save Visualization" button to save the current visualization as an image.</p>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/bloch_sphere.js') }}"></script>
+</body>
+</html>
