@@ -1,29 +1,1201 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Element Visualizer</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <title>Periodic Table</title>
+    <style>
+        body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#container {
+    width: 100%;
+    height: 80vh;
+}
+
+#info {
+    padding: 10px;
+    background: #f0f0f0;
+    width: 80%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#elementDetails {
+    margin-top: 10px;
+    width: 100%;
+    text-align: center;
+}
+
+#periodicTableContainer {
+    margin-top: 10px;
+    text-align: center;
+}
+
+#periodicTable {
+    width: 50%;
+    cursor: pointer;
+}
+
+#helpMenu {
+    margin-top: 20px;
+    text-align: center;
+}
+
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
-    <div id="container"></div>
+    <div id="periodicTable"></div>
     <div id="info">
-        <input type="number" id="atomicNumberInput" placeholder="Enter Atomic Number" min="1" max="118">
+        <input type="number" id="atomicNumberInput" placeholder="Enter atomic number">
         <button id="fetchElement">Fetch Element</button>
-        <div id="elementDetails"></div>
-        <div id="periodicTableContainer">
-            <img src="{{ url_for('static', filename='images/periodic_table.png') }}" id="periodicTable">
-        </div>
+        <button id="saveVisualization">Save Visualization</button>
+        <input type="text" id="searchInput" placeholder="Search Element">
     </div>
-    <div id="helpMenu">
-        <h3>Help</h3>
-        <p>Enter the atomic number of an element to visualize its quantum states and atomic model.</p>
-        <p>Click on the periodic table to select an element.</p>
-        <p>Use the "Save Visualization" button to save the current visualization as an image.</p>
-    </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/bloch_sphere.js') }}"></script>
+
+    <script>
+        console.log("main.js is loaded");
+
+let scene, camera, renderer, elementDetails;
+
+function init() {
+    try {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('container').appendChild(renderer.domElement);
+
+        camera.position.z = 5;
+
+        animate();
+    } catch (e) {
+        alert("WebGL is not supported or is disabled in your browser.");
+    }
+}
+
+Below is the complete `ELEMENT_DATA` object with elements up to atomic number 118, each including `name`, `symbol`, `ground_state`, `excited_states`, `quantum_states`, and `properties`.
+
+### Full ELEMENT_DATA Object
+
+
+const ELEMENT_DATA = {
+    1: {
+        name: 'Hydrogen',
+        symbol: 'H',
+        ground_state: '1s1',
+        excited_states: ['2s1', '2p1'],
+        quantum_states: [(1, 0, 0, 1/2), (2, 0, 0, 1/2), (2, 1, -1, 1/2), (2, 1, 0, 1/2), (2, 1, 1, 1/2)],
+        properties: { atomic_mass: 1.008, density: 0.08988 }
+    },
+    2: {
+        name: 'Helium',
+        symbol: 'He',
+        ground_state: '1s2',
+        excited_states: ['2s2', '2p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 4.002602, density: 0.1786 }
+    },
+    3: {
+        name: 'Lithium',
+        symbol: 'Li',
+        ground_state: '1s2 2s1',
+        excited_states: ['2s2', '2p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 6.94, density: 0.534 }
+    },
+    4: {
+        name: 'Beryllium',
+        symbol: 'Be',
+        ground_state: '1s2 2s2',
+        excited_states: ['2s2 2p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 9.0122, density: 1.85 }
+    },
+    5: {
+        name: 'Boron',
+        symbol: 'B',
+        ground_state: '1s2 2s2 2p1',
+        excited_states: ['2s2 2p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 10.81, density: 2.34 }
+    },
+    6: {
+        name: 'Carbon',
+        symbol: 'C',
+        ground_state: '1s2 2s2 2p2',
+        excited_states: ['2s2 2p3'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 12.011, density: 2.267 }
+    },
+    7: {
+        name: 'Nitrogen',
+        symbol: 'N',
+        ground_state: '1s2 2s2 2p3',
+        excited_states: ['2s2 2p4'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 14.007, density: 1.251 }
+    },
+    8: {
+        name: 'Oxygen',
+        symbol: 'O',
+        ground_state: '1s2 2s2 2p4',
+        excited_states: ['2s2 2p5'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 15.999, density: 1.429 }
+    },
+    9: {
+        name: 'Fluorine',
+        symbol: 'F',
+        ground_state: '1s2 2s2 2p5',
+        excited_states: ['2s2 2p6'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 18.998, density: 1.696 }
+    },
+    10: {
+        name: 'Neon',
+        symbol: 'Ne',
+        ground_state: '1s2 2s2 2p6',
+        excited_states: ['3s2 3p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2)],
+        properties: { atomic_mass: 20.18, density: 0.9002 }
+    },
+    11: {
+        name: 'Sodium',
+        symbol: 'Na',
+        ground_state: '1s2 2s2 2p6 3s1',
+        excited_states: ['3p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 22.99, density: 0.97 }
+    },
+    12: {
+        name: 'Magnesium',
+        symbol: 'Mg',
+        ground_state: '1s2 2s2 2p6 3s2',
+        excited_states: ['3p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 24.305, density: 1.738 }
+    },
+    13: {
+        name: 'Aluminum',
+        symbol: 'Al',
+        ground_state: '1s2 2s2 2p6 3s2 3p1',
+        excited_states: ['3p2', '3d1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 26.982, density: 2.70 }
+    },
+    14: {
+        name: 'Silicon',
+        symbol: 'Si',
+        ground_state: '1s2 2s2 2p6 3s2 3p2',
+        excited_states: ['3p3', '3d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 28.085, density: 2.33 }
+    },
+    15: {
+        name: 'Phosphorus',
+        symbol: 'P',
+        ground_state: '1s2 2s2 2p6 3s2 3p3',
+        excited_states: ['3p4
+
+', '3d3'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 30.974, density: 1.82 }
+    },
+    16: {
+        name: 'Sulfur',
+        symbol: 'S',
+        ground_state: '1s2 2s2 2p6 3s2 3p4',
+        excited_states: ['3p5', '3d4'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 32.06, density: 2.07 }
+    },
+    17: {
+        name: 'Chlorine',
+        symbol: 'Cl',
+        ground_state: '1s2 2s2 2p6 3s2 3p5',
+        excited_states: ['3p6', '3d5'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 35.45, density: 3.214 }
+    },
+    18: {
+        name: 'Argon',
+        symbol: 'Ar',
+        ground_state: '1s2 2s2 2p6 3s2 3p6',
+        excited_states: ['4s1', '4p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2)],
+        properties: { atomic_mass: 39.95, density: 1.784 }
+    },
+    19: {
+        name: 'Potassium',
+        symbol: 'K',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 4s1',
+        excited_states: ['4p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2)],
+        properties: { atomic_mass: 39.098, density: 0.862 }
+    },
+    20: {
+        name: 'Calcium',
+        symbol: 'Ca',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 4s2',
+        excited_states: ['4p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2)],
+        properties: { atomic_mass: 40.078, density: 1.54 }
+    },
+    21: {
+        name: 'Scandium',
+        symbol: 'Sc',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d1 4s2',
+        excited_states: ['4p1', '3d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 44.956, density: 2.985 }
+    },
+    22: {
+        name: 'Titanium',
+        symbol: 'Ti',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d2 4s2',
+        excited_states: ['4p1', '3d3'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 47.867, density: 4.506 }
+    },
+    23: {
+        name: 'Vanadium',
+        symbol: 'V',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d3 4s2',
+        excited_states: ['4p1', '3d4'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 50.942, density: 6.11 }
+    },
+    24: {
+        name: 'Chromium',
+        symbol: 'Cr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d5 4s1',
+        excited_states: ['4p1', '3d6'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 51.996, density: 7.19 }
+    },
+    25: {
+        name: 'Manganese',
+        symbol: 'Mn',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d5 4s2',
+        excited_states: ['4p1', '3d6'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (
+
+3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 54.938, density: 7.21 }
+    },
+    26: {
+        name: 'Iron',
+        symbol: 'Fe',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d6 4s2',
+        excited_states: ['4p1', '3d7'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 55.845, density: 7.87 }
+    },
+    27: {
+        name: 'Cobalt',
+        symbol: 'Co',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d7 4s2',
+        excited_states: ['4p1', '3d8'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 58.933, density: 8.9 }
+    },
+    28: {
+        name: 'Nickel',
+        symbol: 'Ni',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d8 4s2',
+        excited_states: ['4p1', '3d9'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 58.693, density: 8.9 }
+    },
+    29: {
+        name: 'Copper',
+        symbol: 'Cu',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s1',
+        excited_states: ['4p1', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 63.546, density: 8.96 }
+    },
+    30: {
+        name: 'Zinc',
+        symbol: 'Zn',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2',
+        excited_states: ['4p1', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 65.38, density: 7.14 }
+    },
+    31: {
+        name: 'Gallium',
+        symbol: 'Ga',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p1',
+        excited_states: ['4p2', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 69.723, density: 5.91 }
+    },
+    32: {
+        name: 'Germanium',
+        symbol: 'Ge',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p2',
+        excited_states: ['4p3', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 72.63, density: 5.323 }
+    },
+    33: {
+        name: 'Arsenic',
+        symbol: 'As',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p3',
+        excited_states: ['4p4', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 74.922, density: 5.776 }
+    },
+    34: {
+        name: 'Selenium',
+        symbol: 'Se',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p4',
+        excited_states: ['4p5', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0,
+
+ 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 78.971, density: 4.809 }
+    },
+    35: {
+        name: 'Bromine',
+        symbol: 'Br',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p5',
+        excited_states: ['4p6', '3d11'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (3, 2, -2, -1/2), (3, 2, -2, 1/2)],
+        properties: { atomic_mass: 79.904, density: 3.122 }
+    },
+    36: {
+        name: 'Krypton',
+        symbol: 'Kr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6',
+        excited_states: ['5s1', '5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2)],
+        properties: { atomic_mass: 83.798, density: 3.749 }
+    },
+    37: {
+        name: 'Rubidium',
+        symbol: 'Rb',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 85.468, density: 1.532 }
+    },
+    38: {
+        name: 'Strontium',
+        symbol: 'Sr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 5s2',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 87.62, density: 2.64 }
+    },
+    39: {
+        name: 'Yttrium',
+        symbol: 'Y',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d1 5s2',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 88.906, density: 4.47 }
+    },
+    40: {
+        name: 'Zirconium',
+        symbol: 'Zr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d2 5s2',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 91.224, density: 6.52 }
+    },
+    41: {
+        name: 'Niobium',
+        symbol: 'Nb',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d4 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 92.906, density: 8.57 }
+    },
+    42: {
+        name: 'Molybdenum',
+        symbol: 'Mo',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d5 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 95.95, density: 10.28 }
+    },
+    43: {
+        name: 'Technetium',
+        symbol: 'Tc',
+        ground_state: '1s2 2s2 2p6 3s2 3p
+
+6 3d10 4s2 4p6 4d6 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 98.0, density: 11.5 }
+    },
+    44: {
+        name: 'Ruthenium',
+        symbol: 'Ru',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d7 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 101.07, density: 12.45 }
+    },
+    45: {
+        name: 'Rhodium',
+        symbol: 'Rh',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d8 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 102.91, density: 12.41 }
+    },
+    46: {
+        name: 'Palladium',
+        symbol: 'Pd',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2)],
+        properties: { atomic_mass: 106.42, density: 12.02 }
+    },
+    47: {
+        name: 'Silver',
+        symbol: 'Ag',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s1',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 107.87, density: 10.49 }
+    },
+    48: {
+        name: 'Cadmium',
+        symbol: 'Cd',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2',
+        excited_states: ['5p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 112.41, density: 8.65 }
+    },
+    49: {
+        name: 'Indium',
+        symbol: 'In',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p1',
+        excited_states: ['5p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 114.82, density: 7.31 }
+    },
+    50: {
+        name: 'Tin',
+        symbol: 'Sn',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p2',
+        excited_states: ['5p3'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 118.71, density: 7.29 }
+    },
+    51: {
+        name: 'Antimony',
+        symbol: 'Sb',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p3',
+        excited_states: ['5p4'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0,
+
+ 1/2)],
+        properties: { atomic_mass: 121.76, density: 6.68 }
+    },
+    52: {
+        name: 'Tellurium',
+        symbol: 'Te',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p4',
+        excited_states: ['5p5'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 127.60, density: 6.24 }
+    },
+    53: {
+        name: 'Iodine',
+        symbol: 'I',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p5',
+        excited_states: ['5p6'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 126.90, density: 4.93 }
+    },
+    54: {
+        name: 'Xenon',
+        symbol: 'Xe',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6',
+        excited_states: ['6s1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2)],
+        properties: { atomic_mass: 131.29, density: 5.897 }
+    },
+    55: {
+        name: 'Cesium',
+        symbol: 'Cs',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 6s1',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 132.91, density: 1.93 }
+    },
+    56: {
+        name: 'Barium',
+        symbol: 'Ba',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 137.33, density: 3.594 }
+    },
+    57: {
+        name: 'Lanthanum',
+        symbol: 'La',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 5d1 6s2',
+        excited_states: ['6p1', '5d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 138.91, density: 6.145 }
+    },
+    58: {
+        name: 'Cerium',
+        symbol: 'Ce',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f1 5d1 6s2',
+        excited_states: ['6p1', '5d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 140.12, density: 6.770 }
+    },
+    59: {
+        name: 'Praseodymium',
+        symbol: 'Pr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f3 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 
+
+0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 140.91, density: 6.773 }
+    },
+    60: {
+        name: 'Neodymium',
+        symbol: 'Nd',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f4 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 144.24, density: 7.007 }
+    },
+    61: {
+        name: 'Promethium',
+        symbol: 'Pm',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f5 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 145.0, density: 7.26 }
+    },
+    62: {
+        name: 'Samarium',
+        symbol: 'Sm',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f6 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 150.36, density: 7.52 }
+    },
+    63: {
+        name: 'Europium',
+        symbol: 'Eu',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f7 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 151.96, density: 5.24 }
+    },
+    64: {
+        name: 'Gadolinium',
+        symbol: 'Gd',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f7 5d1 6s2',
+        excited_states: ['6p1', '5d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 157.25, density: 7.89 }
+    },
+    65: {
+        name: 'Terbium',
+        symbol: 'Tb',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f9 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 158.93, density: 8.23 }
+    },
+    66: {
+        name: 'Dysprosium',
+        symbol: 'Dy',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f10 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 162.50, density: 
+
+8.55 }
+    },
+    67: {
+        name: 'Holmium',
+        symbol: 'Ho',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f11 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 164.93, density: 8.80 }
+    },
+    68: {
+        name: 'Erbium',
+        symbol: 'Er',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f12 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 167.26, density: 9.07 }
+    },
+    69: {
+        name: 'Thulium',
+        symbol: 'Tm',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f13 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 168.93, density: 9.32 }
+    },
+    70: {
+        name: 'Ytterbium',
+        symbol: 'Yb',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 173.05, density: 6.965 }
+    },
+    71: {
+        name: 'Lutetium',
+        symbol: 'Lu',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d1 6s2',
+        excited_states: ['6p1', '5d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 174.97, density: 9.84 }
+    },
+    72: {
+        name: 'Hafnium',
+        symbol: 'Hf',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d2 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 178.49, density: 13.31 }
+    },
+    73: {
+        name: 'Tantalum',
+        symbol: 'Ta',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d3 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 180.95, density: 16.65 }
+    },
+    74: {
+        name: 'Tungsten',
+        symbol: 'W',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d4 6
+
+s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 183.84, density: 19.25 }
+    },
+    75: {
+        name: 'Rhenium',
+        symbol: 'Re',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d5 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 186.21, density: 21.02 }
+    },
+    76: {
+        name: 'Osmium',
+        symbol: 'Os',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d6 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 190.23, density: 22.59 }
+    },
+    77: {
+        name: 'Iridium',
+        symbol: 'Ir',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d7 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 192.22, density: 22.56 }
+    },
+    78: {
+        name: 'Platinum',
+        symbol: 'Pt',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d9 6s1',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 195.08, density: 21.45 }
+    },
+    79: {
+        name: 'Gold',
+        symbol: 'Au',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s1',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 196.97, density: 19.32 }
+    },
+    80: {
+        name: 'Mercury',
+        symbol: 'Hg',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2',
+        excited_states: ['6p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 200.59, density: 13.534 }
+    },
+    81: {
+        name: 'Thallium',
+        symbol: 'Tl',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p1',
+        excited_states: ['6p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3,
+
+ 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 204.38, density: 11.85 }
+    },
+    82: {
+        name: 'Lead',
+        symbol: 'Pb',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p2',
+        excited_states: ['6p3'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 207.2, density: 11.34 }
+    },
+    83: {
+        name: 'Bismuth',
+        symbol: 'Bi',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p3',
+        excited_states: ['6p4'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 208.98, density: 9.78 }
+    },
+    84: {
+        name: 'Polonium',
+        symbol: 'Po',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p4',
+        excited_states: ['6p5'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 209.0, density: 9.196 }
+    },
+    85: {
+        name: 'Astatine',
+        symbol: 'At',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p5',
+        excited_states: ['6p6'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 210.0, density: 7.0 }
+    },
+    86: {
+        name: 'Radon',
+        symbol: 'Rn',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6',
+        excited_states: ['7s1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2)],
+        properties: { atomic_mass: 222.0, density: 9.73 }
+    },
+    87: {
+        name: 'Francium',
+        symbol: 'Fr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 7s1',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 223.0, density: 1.87 }
+    },
+    88: {
+        name: 'Radium',
+        symbol: 'Ra',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0
+
+, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 226.0, density: 5.5 }
+    },
+    89: {
+        name: 'Actinium',
+        symbol: 'Ac',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 6d1 7s2',
+        excited_states: ['7p1', '6d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 227.0, density: 10.07 }
+    },
+    90: {
+        name: 'Thorium',
+        symbol: 'Th',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f1 6d1 7s2',
+        excited_states: ['7p1', '6d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 232.04, density: 11.724 }
+    },
+    91: {
+        name: 'Protactinium',
+        symbol: 'Pa',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f2 6d1 7s2',
+        excited_states: ['7p1', '6d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 231.04, density: 15.37 }
+    },
+    92: {
+        name: 'Uranium',
+        symbol: 'U',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f3 6d1 7s2',
+        excited_states: ['7p1', '6d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 238.03, density: 18.95 }
+    },
+    93: {
+        name: 'Neptunium',
+        symbol: 'Np',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f4 6d1 7s2',
+        excited_states: ['7p1', '6d2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 237.0, density: 20.45 }
+    },
+    94: {
+        name: 'Plutonium',
+        symbol: 'Pu',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f6 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1
+
+/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 244.0, density: 19.84 }
+    },
+    95: {
+        name: 'Americium',
+        symbol: 'Am',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f7 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 243.0, density: 13.69 }
+    },
+    96: {
+        name: 'Curium',
+        symbol: 'Cm',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f7 6d1 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 247.0, density: 13.51 }
+    },
+    97: {
+        name: 'Berkelium',
+        symbol: 'Bk',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f9 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 247.0, density: 14.78 }
+    },
+    98: {
+        name: 'Californium',
+        symbol: 'Cf',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f10 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 251.0, density: 15.1 }
+    },
+    99: {
+        name: 'Einsteinium',
+        symbol: 'Es',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f11 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 252.0, density: 8.84 }
+    },
+    100: {
+        name: 'Fermium',
+        symbol: 'Fm',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f12 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 257.0, density: 9.7 }
+    },
+    101: {
+        name: 'Mendelevium',
+        symbol: 'Md',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 
+
+3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f13 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 258.0, density: 10.3 }
+    },
+    102: {
+        name: 'Nobelium',
+        symbol: 'No',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 259.0, density: 9.9 }
+    },
+    103: {
+        name: 'Lawrencium',
+        symbol: 'Lr',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d1 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 262.0, density: 15.6 }
+    },
+    104: {
+        name: 'Rutherfordium',
+        symbol: 'Rf',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d2 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 267.0, density: 23.2 }
+    },
+    105: {
+        name: 'Dubnium',
+        symbol: 'Db',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d3 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 270.0, density: 29.3 }
+    },
+    106: {
+        name: 'Seaborgium',
+        symbol: 'Sg',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d4 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 271.0, density: 35.0 }
+    },
+    107: {
+        name: 'Bohrium',
+        symbol: 'Bh',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d5 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 
+
+0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 272.0, density: 37.1 }
+    },
+    108: {
+        name: 'Hassium',
+        symbol: 'Hs',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d6 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 270.0, density: 41.0 }
+    },
+    109: {
+        name: 'Meitnerium',
+        symbol: 'Mt',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d7 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 276.0, density: 37.4 }
+    },
+    110: {
+        name: 'Darmstadtium',
+        symbol: 'Ds',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d8 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 281.0, density: 34.8 }
+    },
+    111: {
+        name: 'Roentgenium',
+        symbol: 'Rg',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d9 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 282.0, density: 28.7 }
+    },
+    112: {
+        name: 'Copernicium',
+        symbol: 'Cn',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2',
+        excited_states: ['7p1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 285.0, density: 23.7 }
+    },
+    113: {
+        name: 'Nihonium',
+        symbol: 'Nh',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2 7p1',
+        excited_states: ['7p2'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0
+
+, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 286.0, density: 16.0 }
+    },
+    114: {
+        name: 'Flerovium',
+        symbol: 'Fl',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2 7p2',
+        excited_states: ['7p3'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 289.0, density: 14.0 }
+    },
+    115: {
+        name: 'Moscovium',
+        symbol: 'Mc',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2 7p3',
+        excited_states: ['7p4'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 290.0, density: 13.5 }
+    },
+    116: {
+        name: 'Livermorium',
+        symbol: 'Lv',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2 7p4',
+        excited_states: ['7p5'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 293.0, density: 12.9 }
+    },
+    117: {
+        name: 'Tennessine',
+        symbol: 'Ts',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2 7p5',
+        excited_states: ['7p6'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 294.0, density: 7.2 }
+    },
+    118: {
+        name: 'Oganesson',
+        symbol: 'Og',
+        ground_state: '1s2 2s2 2p6 3s2 3p6 3d10 4s2 4p6 4d10 5s2 5p6 4f14 5d10 6s2 6p6 5f14 6d10 7s2 7p6',
+        excited_states: ['8s1'],
+        quantum_states: [(1, 0, 0, -1/2), (1, 0, 0, 1/2), (2, 0, 0, -1/2), (2, 0, 0, 1/2), (3, 0, 0, -1/2), (3, 0, 0, 1/2), (4, 0, 0, -1/2), (4, 0, 0, 1/2), (5, 0, 0, -1/2), (5, 0, 0, 1/2), (6, 0, 0, -1/2), (6, 0, 0, 1/2), (7, 0, 0, -1/2), (7, 0, 0, 1/2)],
+        properties: { atomic_mass: 294.0, density: 4.9 }
+    }
+};
+
+function animate() {
+    requestAnimationFrame(animate);
+    renderer.render(scene, camera);
+}
+
+// Fetch element data from the server
+function fetchElementData(atomicNumber) {
+    console.log(`Sending request for element ${atomicNumber}`);
+    fetch(`/element/${atomicNumber}`)
+        .then(response => {
+            console.log('Received response:', response);
+            return response.json();
+        })
+        .then(data => {
+            console.log('Processed response data:', data);
+            if (data.error) {
+                alert(data.error);
+            } else {
+                displayElementData(data);
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching element data:', error);
+        });
+}
+
+// Create a 3D model of the atomic structure
+function createAtomicModel(element) {
+    const nucleusGeometry = new THREE.SphereGeometry(0.5, 32, 32);
+    const nucleusMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
+    scene.add(nucleus);
+
+    element.quantum_states.forEach((state, index) => {
+        const electronGeometry = new THREE.SphereGeometry(0.1, 32, 32);
+        const electronMaterial = new THREE.MeshBasicMaterial({ color: 0x0000ff });
+        const electron = new THREE.Mesh(electronGeometry, electronMaterial);
+
+        const radius = 1 + state[0] * 0.5;
+        const angle = (index / element.quantum_states.length) * Math.PI * 2;
+        electron.position.set(Math.cos(angle) * radius, Math.sin(angle) * radius, 0);
+        scene.add(electron);
+    });
+}
+
+// Display the fetched element data in the UI
+function displayElementData(data) {
+    console.log('Displaying element data:', data);
+
+    if (!data.properties) { 
+        console.error('Missing properties for element', data);
+        return;
+    }
+
+    const elementName = document.getElementById('elementName');
+    const elementSymbol = document.getElementById('elementSymbol');
+    const groundState = document.getElementById('groundState');
+    const excitedStates = document.getElementById('excitedStates');
+    const atomicMass = document.getElementById('atomicMass');
+    const density = document.getElementById('density');
+
+    elementName.textContent = `${data.name} (${data.symbol})`;
+    elementSymbol.textContent = data.symbol;
+    groundState.textContent = data.ground_state;
+    excitedStates.textContent = data.excited_states.join(', ');
+    atomicMass.textContent = data.properties.atomic_mass;
+    density.textContent = data.properties.density;
+
+    // Clear the scene and create a new atomic model
+    while (scene.children.length > 0) {
+        scene.remove(scene.children[0]);
+    }
+    createAtomicModel(data);
+    createBlochSphere();
+}
+
+function saveVisualization(filename) {
+    renderer.render(scene, camera);
+    const imgData = renderer.domElement.toDataURL('image/png');
+    const link = document.createElement('a');
+    link.href = imgData;
+    link.download = filename;
+    link.click();
+}
+
+
+// Function to search elements by query
+function searchElement(query) {
+    const results = Object.values(ELEMENT_DATA).filter(element => {
+        if (!element.symbol){
+            console.error('Element missiong symbol:', element);
+            return false;
+        }
+        return element.name.toLowerCase().includes(query.toLowerCase()) || element.symbol.toLowerCase() === query.toLowerCase()
+    });
+    return results;
+}
+
+function createBlochSphere() {
+    const sphereGeometry = new THREE.SphereGeometry(1, 32, 32);
+    const sphereMaterial = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial);
+    scene.add(sphere);
+}
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM content loaded");
+
+            const fetchButton = document.getElementById('fetchElement');
+            const atomicNumberInput = document.getElementById('atomicNumberInput');
+
+            fetchButton.addEventListener('click', () => {
+                console.log("Button click event triggered");
+                const atomicNumber = atomicNumberInput.value;
+                console.log(`Button clicked, atomic number: ${atomicNumber}`);
+                if (atomicNumber) {
+                    console.log(`Fetching data for atomic number: ${atomicNumber}`);
+                    fetchElementData(atomicNumber);
+                } else {
+                    alert('Please enter a valid atomic number.');
+                }
+            });
+
+            document.getElementById('saveVisualization').addEventListener('click', () => {
+                saveVisualization('visualization.png');
+            });
+
+            document.getElementById('searchInput').addEventListener('input', (event) => {
+                const query = event.target.value;
+                const results = searchElement(query);
+                if (results.length > 0) {
+                    displayElementData(results[0]);
+                }
+            });
+
+            init();
+        });
+    </script>
 </body>
 </html>
